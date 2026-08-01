@@ -62,6 +62,10 @@ public class GeminiClient {
         String prompt = buildIntentPrompt(topic, knownWorkTitles);
         try {
             String raw = generateText(prompt, appConfig);
+            boolean debug = "true".equalsIgnoreCase(System.getProperty("research.debugIntent", "false"));
+            if (debug) {
+                LOGGER.info(() -> "Intent resolver raw response: " + truncate(raw, 500));
+            }
             JsonNode root = objectMapper.readTree(raw);
 
             String author = root.path("author").asText("").trim();
