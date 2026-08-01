@@ -78,6 +78,9 @@ public final class LocalCorpusSearchService {
             } else {
                 List<String> knownWorkTitles = loadKnownWorkTitles(corpusPaths);
                 intent = geminiClient.resolveLocalQueryIntent(topic, knownWorkTitles, appConfig);
+                if (intent.concepts() != null && intent.concepts().isEmpty()) {
+                    logCount(appConfig, "AI intent ran — returned empty concepts", 0);
+                }
             }
 
             // Phase 4: Use AI concepts as the FTS query text when available.

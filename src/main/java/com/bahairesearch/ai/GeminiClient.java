@@ -17,11 +17,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.logging.Logger;
 
 /**
  * Client for Gemini summary and quote extraction with strict citation fields.
  */
 public class GeminiClient {
+
+    private static final Logger LOGGER = Logger.getLogger(GeminiClient.class.getName());
 
     public record LocalQueryIntent(
         String author,
@@ -78,6 +81,10 @@ public class GeminiClient {
 
             return new LocalQueryIntent(author, workTitle, knownPhrase, new ArrayList<>(concepts));
         } catch (Exception exception) {
+            boolean debug = "true".equalsIgnoreCase(System.getProperty("research.debugIntent", "false"));
+            if (debug) {
+                LOGGER.warning(() -> "Intent resolver API error: " + exception.getMessage());
+            }
             return new LocalQueryIntent("", "", "", List.of());
         }
     }
