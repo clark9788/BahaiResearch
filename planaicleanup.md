@@ -197,6 +197,28 @@ String orFtsQuery = SearchCore.toFtsQueryOr(queryForFts, manualRequiredAuthor);
 
 ---
 
+## Phase 4b — Distinguish Empty Concepts from API Errors (Observability) ✅ DONE
+
+When the intent resolver returns empty concepts it's ambiguous: did the model genuinely find nothing (correct), or did the API fail silently (bug)? This adds debug logging to distinguish the two cases.
+
+### Files
+- `GeminiClient.java` — `resolveLocalQueryIntent()` catch block
+- `LocalCorpusSearchService.java` — after intent resolver runs
+
+### Changes
+
+**`GeminiClient.java`:**
+- Added `LOGGER` instance
+- In the `catch` block: logs API error when `-Dresearch.debugIntent=true` is set
+
+**`LocalCorpusSearchService.java`:**
+- After `resolveLocalQueryIntent()` returns (non-skip path): logs `"AI intent ran — returned empty concepts"` when `aiConcepts` is empty
+
+### Commit
+`f6e1cec` — Phase 4b: Add debug logging for empty/errored intent resolver calls
+
+---
+
 ## Phase 5 — Add A/B Testing Mode Toggle (Verification)
 
 Add a runtime config flag to compare search modes without rebuilding. This enables the 10-query A/B verification strategy described in `AISearchEval2.md`.
