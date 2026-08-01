@@ -6,11 +6,8 @@ package com.bahairesearch.config;
 public record AppConfig(
     String geminiApiKey,
     String geminiModel,
-    String requiredSite,
-    boolean localOnlyMode,
     String noResultsText,
     boolean debugIntent,
-    String promptBoilerplate,
     int maxQuotes,
     int requestTimeoutSeconds,
     String corpusBasePath,

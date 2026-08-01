@@ -14,11 +14,8 @@ public final class ConfigLoader {
     private static final String ENV_KEY_PATH = "KEY_PATH";
     private static final String KEY_GEMINI_API_KEY = "gemini.apiKey";
     private static final String KEY_GEMINI_MODEL = "gemini.model";
-    private static final String KEY_REQUIRED_SITE = "research.requiredSite";
-    private static final String KEY_LOCAL_ONLY_MODE = "research.localOnlyMode";
     private static final String KEY_NO_RESULTS_TEXT = "research.noResultsText";
     private static final String KEY_DEBUG_INTENT = "research.debugIntent";
-    private static final String KEY_PROMPT_BOILERPLATE = "research.promptBoilerplate";
     private static final String KEY_MAX_QUOTES = "research.maxQuotes";
     private static final String KEY_TIMEOUT_SECONDS = "research.requestTimeoutSeconds";
     private static final String KEY_CORPUS_BASE_PATH = "corpus.basePath";
@@ -38,15 +35,8 @@ public final class ConfigLoader {
     private static final String KEY_CORPUS_CURATED_MANIFEST_FILE = "corpus.curated.manifestFileName";
 
     private static final String DEFAULT_MODEL = "gemini-flash-latest";
-    private static final String DEFAULT_REQUIRED_SITE = "https://oceanlibrary.com/";
-    private static final boolean DEFAULT_LOCAL_ONLY_MODE = true;
     private static final String DEFAULT_NO_RESULTS_TEXT = "No Results";
     private static final boolean DEFAULT_DEBUG_INTENT = false;
-    private static final String DEFAULT_PROMPT_BOILERPLATE =
-        "Return quotes from primary Bahá’í scripture only. "
-            + "For each quote include author, book title, and paragraph or page number. "
-            + "If paragraph/page is unavailable, set paragraphOrPage to 'Not specified'. "
-            + "Return No Results only when no relevant quotes can be found.";
     private static final int DEFAULT_MAX_QUOTES = 8;
     private static final int DEFAULT_TIMEOUT_SECONDS = 90;
     private static final String DEFAULT_CORPUS_BASE_PATH = "data/corpus";
@@ -92,20 +82,10 @@ public final class ConfigLoader {
             throw new IllegalStateException("Unable to read KEY_PATH file: " + keyPath, exception);
         }
 
-        boolean localOnlyMode = parseBoolean(properties.getProperty(KEY_LOCAL_ONLY_MODE), DEFAULT_LOCAL_ONLY_MODE);
         String geminiApiKey = valueOrEmpty(properties.getProperty(KEY_GEMINI_API_KEY));
-        if (geminiApiKey.isEmpty() && !localOnlyMode) {
-            throw new IllegalStateException("Missing required property when research.localOnlyMode=false: gemini.apiKey");
-        }
-
         String model = valueOrDefault(properties.getProperty(KEY_GEMINI_MODEL), DEFAULT_MODEL);
-        String requiredSite = valueOrDefault(properties.getProperty(KEY_REQUIRED_SITE), DEFAULT_REQUIRED_SITE);
         String noResultsText = valueOrDefault(properties.getProperty(KEY_NO_RESULTS_TEXT), DEFAULT_NO_RESULTS_TEXT);
         boolean debugIntent = parseBoolean(properties.getProperty(KEY_DEBUG_INTENT), DEFAULT_DEBUG_INTENT);
-        String promptBoilerplate = valueOrDefault(
-            properties.getProperty(KEY_PROMPT_BOILERPLATE),
-            DEFAULT_PROMPT_BOILERPLATE
-        );
         int maxQuotes = parsePositiveInt(properties.getProperty(KEY_MAX_QUOTES), DEFAULT_MAX_QUOTES);
         int timeoutSeconds = parsePositiveInt(properties.getProperty(KEY_TIMEOUT_SECONDS), DEFAULT_TIMEOUT_SECONDS);
         // bahai.corpusPath system property allows jpackage to pass an absolute path via
@@ -152,11 +132,8 @@ public final class ConfigLoader {
         return new AppConfig(
             geminiApiKey,
             model,
-            requiredSite,
-            localOnlyMode,
             noResultsText,
             debugIntent,
-            promptBoilerplate,
             maxQuotes,
             timeoutSeconds,
             corpusBasePath,

@@ -2,8 +2,6 @@ package com.bahairesearch.ai;
 
 import com.bahairesearch.config.AppConfig;
 import com.bahairesearch.common.model.CorpusSearchHit;
-import com.bahairesearch.common.model.QuoteResult;
-import com.bahairesearch.common.model.ResearchReport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.MediaType;
@@ -51,24 +49,6 @@ public class GeminiClient {
     }
 
     /**
-     * Generate a summary and selected quotes based on topic and prompt profile constraints.
-     */
-    public ResearchReport generateReport(String topic, AppConfig appConfig) {
-        String prompt = buildPrompt(topic, appConfig);
-        try {
-            String geminiTextResponse = generateText(prompt, appConfig);
-            ResearchReport report = parseReport(geminiTextResponse, appConfig.noResultsText());
-            return enforceRequestedAuthor(topic, report, appConfig.noResultsText());
-        } catch (IllegalStateException exception) {
-            String message = exception.getMessage() == null ? "" : exception.getMessage().toLowerCase(Locale.ROOT);
-            if (message.contains("empty response")) {
-                return new ResearchReport(appConfig.noResultsText(), List.of());
-            }
-            throw exception;
-        }
-    }
-
-    /**
      * Resolve author/work/phrase/concepts for local constrained retrieval.
      */
     public LocalQueryIntent resolveLocalQueryIntent(String topic, List<String> knownWorkTitles, AppConfig appConfig) {
@@ -79,8 +59,7 @@ public class GeminiClient {
         String prompt = buildIntentPrompt(topic, knownWorkTitles);
         try {
             String raw = generateText(prompt, appConfig);
-            String cleaned = stripMarkdownCodeFence(raw);
-            JsonNode root = objectMapper.readTree(cleaned);
+            JsonNode root = objectMapper.readTree(raw);
 
             String author = root.path("author").asText("").trim();
             String workTitle = root.path("workTitle").asText("").trim();
@@ -119,8 +98,7 @@ public class GeminiClient {
         String prompt = buildCandidateRerankPrompt(topic, candidates, maxQuotes);
         try {
             String raw = generateText(prompt, appConfig);
-            String cleaned = stripMarkdownCodeFence(raw);
-            JsonNode root = objectMapper.readTree(cleaned);
+            JsonNode root = objectMapper.readTree(raw);
             JsonNode idsNode = root.path("selectedIds");
             if (!idsNode.isArray()) {
                 return List.of();
@@ -147,6 +125,7 @@ public class GeminiClient {
             .putArray("parts")
             .addObject()
             .put("text", prompt);
+        root.put("response_mime_type", "application/json");
 
         String payload = root.toPrettyString();
         String endpoint = GEMINI_URL_TEMPLATE.formatted(appConfig.geminiModel(), appConfig.geminiApiKey());
@@ -199,97 +178,6 @@ public class GeminiClient {
 
         String message = lastIoException == null ? "Unknown IO error" : lastIoException.getMessage();
         throw new IllegalStateException("Gemini request error: " + message, lastIoException);
-    }
-
-    private ResearchReport parseReport(String rawResponse, String noResultsText) {
-        String cleaned = stripMarkdownCodeFence(rawResponse);
-        if (cleaned.equalsIgnoreCase(noResultsText)) {
-            return new ResearchReport(noResultsText, List.of());
-        }
-
-        try {
-            JsonNode root = objectMapper.readTree(cleaned);
-            String summary = root.path("summary").asText("No summary returned.").trim();
-            JsonNode quotesNode = root.path("quotes");
-
-            List<QuoteResult> quoteResults = new ArrayList<>();
-            if (quotesNode.isArray()) {
-                for (JsonNode quoteNode : quotesNode) {
-                    String quote = quoteNode.path("quote").asText("").trim();
-                    String author = quoteNode.path("author").asText("").trim();
-                    String bookTitle = quoteNode.path("bookTitle").asText("").trim();
-                    String paragraphOrPage = quoteNode.path("paragraphOrPage").asText("").trim();
-                    String sourceUrl = quoteNode.path("sourceUrl").asText("").trim();
-
-                    if (paragraphOrPage.isEmpty()) {
-                        paragraphOrPage = "Not specified";
-                    }
-
-                    if (!quote.isEmpty()
-                        && !author.isEmpty()
-                        && !bookTitle.isEmpty()
-                        && !sourceUrl.isEmpty()) {
-                        quoteResults.add(new QuoteResult(quote, author, bookTitle, paragraphOrPage, sourceUrl));
-                    }
-                }
-            }
-
-            if (summary.equalsIgnoreCase(noResultsText) || quoteResults.isEmpty()) {
-                return new ResearchReport(noResultsText, List.of());
-            }
-
-            return new ResearchReport(summary, quoteResults);
-        } catch (IOException exception) {
-            if (cleaned.toLowerCase(Locale.ROOT).contains(noResultsText.toLowerCase(Locale.ROOT))) {
-                return new ResearchReport(noResultsText, List.of());
-            }
-
-            return new ResearchReport(
-                "The AI response could not be parsed as structured output. Raw response was returned below.",
-                List.of(new QuoteResult(rawResponse, "N/A", "Gemini raw output", "N/A", "N/A"))
-            );
-        }
-    }
-
-    private String buildPrompt(String topic, AppConfig appConfig) {
-        return """
-            You are researching Bahá’í writings.
-
-            Topic:
-            %s
-
-            Requirements:
-            1) Limit research to site:%s only.
-            2) %s
-            3) Return only a JSON object OR exactly the text "%s".
-            2) JSON schema:
-               {
-                 "summary": "string",
-                 "quotes": [
-                   {
-                     "quote": "exact quote text",
-                     "author": "author name",
-                     "bookTitle": "book title",
-                     "paragraphOrPage": "paragraph number or page number",
-                     "sourceUrl": "https://..."
-                   }
-                 ]
-               }
-            4) Include up to %d quotes.
-            5) Quotes must come from primary Bahá’í writings, not commentary.
-            6) If the user asks for a specific author/body (for example Universal House of Justice, Bahá’u’lláh, ‘Abdu’l-Bahá, Shoghi Effendi), only return quotes from that requested source.
-            7) Do not substitute quotes from other authors if requested source has no qualifying quote.
-            8) If any required citation field is missing, exclude that quote.
-            9) If no qualifying results, return exactly "%s".
-            10) Do not add markdown fences or extra text.
-            """.formatted(
-            topic,
-            appConfig.requiredSite(),
-            appConfig.promptBoilerplate(),
-            appConfig.noResultsText(),
-            appConfig.maxQuotes(),
-            appConfig.noResultsText()
-        );
     }
 
     private String buildIntentPrompt(String topic, List<String> knownWorkTitles) {
@@ -357,41 +245,6 @@ public class GeminiClient {
             - Do not invent text or references.
             - Output JSON only.
             """.formatted(topic, items, maxQuotes);
-    }
-
-    private ResearchReport enforceRequestedAuthor(String topic, ResearchReport report, String noResultsText) {
-        String requiredAuthor = inferRequiredAuthor(topic);
-        if (requiredAuthor == null || report.quotes().isEmpty()) {
-            return report;
-        }
-
-        List<QuoteResult> filteredQuotes = report.quotes().stream()
-            .filter(quote -> quote.author() != null
-                && quote.author().toLowerCase(Locale.ROOT).contains(requiredAuthor))
-            .toList();
-
-        if (filteredQuotes.isEmpty()) {
-            return new ResearchReport(noResultsText, List.of());
-        }
-        return new ResearchReport(report.summary(), filteredQuotes);
-    }
-
-    private String inferRequiredAuthor(String topic) {
-        String normalizedTopic = topic == null ? "" : topic.toLowerCase(Locale.ROOT);
-        if (normalizedTopic.contains("house of justice")) {
-            return "house of justice";
-        }
-        if (normalizedTopic.contains("baha'u'llah") || normalizedTopic.contains("bahá’u’lláh")) {
-            return "bahá’u’lláh";
-        }
-        if (normalizedTopic.contains("abdu'l-baha") || normalizedTopic.contains("‘abdu’l-bahá")
-            || normalizedTopic.contains("abdul-baha")) {
-            return "abdu";
-        }
-        if (normalizedTopic.contains("shoghi effendi")) {
-            return "shoghi effendi";
-        }
-        return null;
     }
 
     private String stripMarkdownCodeFence(String value) {

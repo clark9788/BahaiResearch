@@ -1,6 +1,5 @@
 package com.bahairesearch.research;
 
-import com.bahairesearch.ai.GeminiClient;
 import com.bahairesearch.corpus.CorpusBootstrapService;
 import com.bahairesearch.corpus.CorpusIngestService;
 import com.bahairesearch.corpus.LocalCorpusSearchService;
@@ -37,13 +36,7 @@ public class ResearchService {
         CorpusBootstrapService.initializeIfEnabled(appConfig);
         CorpusIngestService.ingestIfConfigured(appConfig);
 
-        ResearchReport localReport = LocalCorpusSearchService.search(
+        return LocalCorpusSearchService.search(
             topic.trim(), selectedAuthor, selectedTitle, appConfig);
-        if (!localReport.quotes().isEmpty() || appConfig.localOnlyMode()) {
-            return localReport;
-        }
-
-        GeminiClient geminiClient = new GeminiClient(appConfig);
-        return geminiClient.generateReport(topic.trim(), appConfig);
     }
 }
