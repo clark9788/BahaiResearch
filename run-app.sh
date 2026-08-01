@@ -38,5 +38,6 @@ if [ -z "$JAR_PATH" ]; then
 fi
 
 echo "Using KEY_PATH=$KEY_PATH"
-echo "Running: $JAVA_EXE -jar $JAR_PATH"
-"$JAVA_EXE" -jar "$JAR_PATH"
+echo "Running: $JAVA_EXE ${JAVA_OPTS:-} -jar $JAR_PATH"
+# shellcheck disable=SC2086
+"$JAVA_EXE" ${JAVA_OPTS:-} -jar "$JAR_PATH"
