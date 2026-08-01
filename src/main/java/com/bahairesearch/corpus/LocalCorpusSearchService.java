@@ -63,9 +63,25 @@ public final class LocalCorpusSearchService {
             boolean hasExplicitAuthor = explicitAuthor != null && !explicitAuthor.isBlank();
             String manualRequiredAuthor = hasExplicitAuthor ? explicitAuthor : inferRequiredAuthor(topic);
 
+            // --- AI mode gating ---
+            // "full"        = default, all AI features enabled
+            // "none"        = skip all AI (intent resolver + reranker), pure FTS
+            // "rerank-only" = skip intent resolver, keep reranker
+            // "concept-fts" = same as "full", concept-driven FTS queries
+            String aiMode = appConfig.aiMode() != null ? appConfig.aiMode().toLowerCase(Locale.ROOT) : "full";
+
             // Extract FTS tokens first to decide whether AI intent resolution is worthwhile
             List<String> preAiTokens = SearchCore.extractFtsTokens(topic, manualRequiredAuthor);
             boolean skipAiIntent = preAiTokens.size() <= 3 || appConfig.geminiApiKey().isBlank();
+
+            if ("none".equals(aiMode) || "rerank-only".equals(aiMode)) {
+                skipAiIntent = true;
+                if ("none".equals(aiMode)) {
+                    logCount(appConfig, "AI mode=none — all AI disabled", 0);
+                } else {
+                    logCount(appConfig, "AI mode=rerank-only — intent resolver skipped", 0);
+                }
+            }
 
             GeminiClient geminiClient = new GeminiClient(appConfig);
             GeminiClient.LocalQueryIntent intent;
@@ -218,13 +234,20 @@ public final class LocalCorpusSearchService {
                 }
             }
 
-            List<CorpusSearchHit> curated = pickFinalQuotesWithRerank(
-                topic,
-                candidatePool,
-                requestedQuotes,
-                geminiClient,
-                appConfig
-            );
+            List<CorpusSearchHit> curated;
+            if ("none".equals(aiMode)) {
+                // Skip reranker — return top BM25-ranked results directly
+                curated = candidatePool.stream().limit(requestedQuotes).toList();
+                logCount(appConfig, "AI mode=none — reranker skipped", 0);
+            } else {
+                curated = pickFinalQuotesWithRerank(
+                    topic,
+                    candidatePool,
+                    requestedQuotes,
+                    geminiClient,
+                    appConfig
+                );
+            }
             if (curated.isEmpty()) {
                 return new ResearchReport(appConfig.noResultsText(), List.of());
             }

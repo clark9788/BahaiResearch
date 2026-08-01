@@ -8,6 +8,7 @@ public record AppConfig(
     String geminiModel,
     String noResultsText,
     boolean debugIntent,
+    String aiMode,
     int maxQuotes,
     int requestTimeoutSeconds,
     String corpusBasePath,

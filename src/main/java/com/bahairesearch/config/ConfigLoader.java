@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Properties;
 
 /**
@@ -16,6 +17,7 @@ public final class ConfigLoader {
     private static final String KEY_GEMINI_MODEL = "gemini.model";
     private static final String KEY_NO_RESULTS_TEXT = "research.noResultsText";
     private static final String KEY_DEBUG_INTENT = "research.debugIntent";
+    private static final String KEY_AI_MODE = "research.aiMode";
     private static final String KEY_MAX_QUOTES = "research.maxQuotes";
     private static final String KEY_TIMEOUT_SECONDS = "research.requestTimeoutSeconds";
     private static final String KEY_CORPUS_BASE_PATH = "corpus.basePath";
@@ -37,6 +39,7 @@ public final class ConfigLoader {
     private static final String DEFAULT_MODEL = "gemini-flash-latest";
     private static final String DEFAULT_NO_RESULTS_TEXT = "No Results";
     private static final boolean DEFAULT_DEBUG_INTENT = false;
+    private static final String DEFAULT_AI_MODE = "full";
     private static final int DEFAULT_MAX_QUOTES = 8;
     private static final int DEFAULT_TIMEOUT_SECONDS = 90;
     private static final String DEFAULT_CORPUS_BASE_PATH = "data/corpus";
@@ -86,6 +89,7 @@ public final class ConfigLoader {
         String model = valueOrDefault(properties.getProperty(KEY_GEMINI_MODEL), DEFAULT_MODEL);
         String noResultsText = valueOrDefault(properties.getProperty(KEY_NO_RESULTS_TEXT), DEFAULT_NO_RESULTS_TEXT);
         boolean debugIntent = parseBoolean(properties.getProperty(KEY_DEBUG_INTENT), DEFAULT_DEBUG_INTENT);
+        String aiMode = valueOrDefault(properties.getProperty(KEY_AI_MODE), DEFAULT_AI_MODE).toLowerCase(Locale.ROOT);
         int maxQuotes = parsePositiveInt(properties.getProperty(KEY_MAX_QUOTES), DEFAULT_MAX_QUOTES);
         int timeoutSeconds = parsePositiveInt(properties.getProperty(KEY_TIMEOUT_SECONDS), DEFAULT_TIMEOUT_SECONDS);
         // bahai.corpusPath system property allows jpackage to pass an absolute path via
@@ -134,6 +138,7 @@ public final class ConfigLoader {
             model,
             noResultsText,
             debugIntent,
+            aiMode,
             maxQuotes,
             timeoutSeconds,
             corpusBasePath,
