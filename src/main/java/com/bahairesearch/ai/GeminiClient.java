@@ -62,8 +62,7 @@ public class GeminiClient {
         String prompt = buildIntentPrompt(topic, knownWorkTitles);
         try {
             String raw = generateText(prompt, appConfig);
-            boolean debug = "true".equalsIgnoreCase(System.getProperty("research.debugIntent", "false"));
-            if (debug) {
+            if (appConfig.debugIntent()) {
                 LOGGER.info(() -> "Intent resolver raw response: " + truncate(raw, 500));
             }
             JsonNode root = objectMapper.readTree(raw);
@@ -85,8 +84,7 @@ public class GeminiClient {
 
             return new LocalQueryIntent(author, workTitle, knownPhrase, new ArrayList<>(concepts));
         } catch (Exception exception) {
-            boolean debug = "true".equalsIgnoreCase(System.getProperty("research.debugIntent", "false"));
-            if (debug) {
+            if (appConfig.debugIntent()) {
                 LOGGER.warning(() -> "Intent resolver API error: " + exception.getMessage());
             }
             return new LocalQueryIntent("", "", "", List.of());
