@@ -134,7 +134,7 @@ public class GeminiClient {
             .putArray("parts")
             .addObject()
             .put("text", prompt);
-        root.put("response_mime_type", "application/json");
+        root.putObject("generationConfig").put("response_mime_type", "application/json");
 
         String payload = root.toPrettyString();
         String endpoint = GEMINI_URL_TEMPLATE.formatted(appConfig.geminiModel(), appConfig.geminiApiKey());
