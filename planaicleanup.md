@@ -267,6 +267,7 @@ if ("rerank-only".equals(aiMode)) {
 - Set `research.aiMode=concept-fts` → intent fires, concepts feed FTS queries
 - Same search in each mode, compare results side by side
 - Run the 10-query A/B test suite described below
+- With `research.debugIntent=true`, GeminiClient logs "Gemini API: calling intent resolver" / "Gemini API: calling reranker" before each API call
 
 ### A/B Test Suite (from AISearchEval2.md, Section 8)
 

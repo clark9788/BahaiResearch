@@ -61,6 +61,9 @@ public class GeminiClient {
 
         String prompt = buildIntentPrompt(topic, knownWorkTitles);
         try {
+            if (appConfig.debugIntent()) {
+                LOGGER.info(() -> "Gemini API: calling intent resolver for topic: " + truncate(topic, 120));
+            }
             String raw = generateText(prompt, appConfig);
             if (appConfig.debugIntent()) {
                 LOGGER.info(() -> "Intent resolver raw response: " + truncate(raw, 500));
@@ -106,6 +109,9 @@ public class GeminiClient {
 
         String prompt = buildCandidateRerankPrompt(topic, candidates, maxQuotes);
         try {
+            if (appConfig.debugIntent()) {
+                LOGGER.info(() -> "Gemini API: calling reranker — " + candidates.size() + " candidates");
+            }
             String raw = generateText(prompt, appConfig);
             JsonNode root = objectMapper.readTree(raw);
             JsonNode idsNode = root.path("selectedIds");
