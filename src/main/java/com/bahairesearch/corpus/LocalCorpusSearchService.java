@@ -70,10 +70,22 @@ public final class LocalCorpusSearchService {
                 return new ResearchReport(appConfig.noResultsText(), List.of());
             }
 
-            List<String> knownWorkTitles = loadKnownWorkTitles(corpusPaths);
+            // Extract FTS tokens first to decide whether AI intent resolution is worthwhile
+            List<String> preAiTokens = SearchCore.extractFtsTokens(topic, manualRequiredAuthor);
+            boolean skipAiIntent = preAiTokens.size() <= 3 || appConfig.geminiApiKey().isBlank();
+
             GeminiClient geminiClient = new GeminiClient(appConfig);
-            GeminiClient.LocalQueryIntent intent =
-                geminiClient.resolveLocalQueryIntent(topic, knownWorkTitles, appConfig);
+            GeminiClient.LocalQueryIntent intent;
+
+            if (skipAiIntent) {
+                // For short keyword queries, the user has already done the work
+                // of selecting optimal tokens. Skip the API call entirely.
+                intent = new GeminiClient.LocalQueryIntent("", "", "", List.of());
+                logCount(appConfig, "AI intent skipped (tokens=" + preAiTokens.size() + ")", 0);
+            } else {
+                List<String> knownWorkTitles = loadKnownWorkTitles(corpusPaths);
+                intent = geminiClient.resolveLocalQueryIntent(topic, knownWorkTitles, appConfig);
+            }
 
             int requestedQuotes = Math.max(1, appConfig.maxQuotes());
             int retrievalPoolSize = Math.max(requestedQuotes * 12, 60);
