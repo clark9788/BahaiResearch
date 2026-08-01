@@ -63,13 +63,6 @@ public final class LocalCorpusSearchService {
             boolean hasExplicitAuthor = explicitAuthor != null && !explicitAuthor.isBlank();
             String manualRequiredAuthor = hasExplicitAuthor ? explicitAuthor : inferRequiredAuthor(topic);
 
-            String nearQuery = SearchCore.toFtsQueryNear(topic, manualRequiredAuthor);
-            String ftsQuery = SearchCore.toFtsQuery(topic, manualRequiredAuthor);
-            String orFtsQuery = SearchCore.toFtsQueryOr(topic, manualRequiredAuthor);
-            if (ftsQuery.isBlank()) {
-                return new ResearchReport(appConfig.noResultsText(), List.of());
-            }
-
             // Extract FTS tokens first to decide whether AI intent resolution is worthwhile
             List<String> preAiTokens = SearchCore.extractFtsTokens(topic, manualRequiredAuthor);
             boolean skipAiIntent = preAiTokens.size() <= 3 || appConfig.geminiApiKey().isBlank();
@@ -85,6 +78,26 @@ public final class LocalCorpusSearchService {
             } else {
                 List<String> knownWorkTitles = loadKnownWorkTitles(corpusPaths);
                 intent = geminiClient.resolveLocalQueryIntent(topic, knownWorkTitles, appConfig);
+            }
+
+            // Phase 4: Use AI concepts as the FTS query text when available.
+            // Long sentences produce poor positional NEAR queries (first-3 tokens are often
+            // noise like "what does the"). AI concepts like ["science","religion","harmony"]
+            // produce NEAR(science religion harmony, 5) — dramatically better precision.
+            String queryForFts = topic;
+            if (!skipAiIntent && intent.concepts() != null && !intent.concepts().isEmpty()) {
+                String conceptText = String.join(" ", intent.concepts());
+                List<String> conceptTokens = SearchCore.extractFtsTokens(conceptText, manualRequiredAuthor);
+                if (conceptTokens.size() >= 2) {
+                    queryForFts = conceptText;
+                    logCount(appConfig, "Using AI concepts for FTS query: " + conceptText, 0);
+                }
+            }
+            String nearQuery = SearchCore.toFtsQueryNear(queryForFts, manualRequiredAuthor);
+            String ftsQuery = SearchCore.toFtsQuery(queryForFts, manualRequiredAuthor);
+            String orFtsQuery = SearchCore.toFtsQueryOr(queryForFts, manualRequiredAuthor);
+            if (ftsQuery.isBlank()) {
+                return new ResearchReport(appConfig.noResultsText(), List.of());
             }
 
             int requestedQuotes = Math.max(1, appConfig.maxQuotes());

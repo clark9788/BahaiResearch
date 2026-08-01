@@ -39,6 +39,8 @@ bahai-research.properties
 .DS_Store
 Thumbs.db
 bin/
+*.swp
+*.swo
 
 # NOTE:
 # We are intentionally NOT ignoring:
