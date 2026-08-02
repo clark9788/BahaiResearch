@@ -24,11 +24,8 @@ This document describes the **actual runtime flow** of the app based on current 
    - Reingest occurs here when `corpus.forceReingest=true`.
 4. Run local retrieval first:
    - `LocalCorpusSearchService.search(topic, selectedAuthor, selectedTitle, appConfig)`
-5. Branch:
-   - If local returns quotes → return local report.
-   - If local returns no quotes:
-     - `research.localOnlyMode=true` → return local "No Results".
-     - `research.localOnlyMode=false` → fallback to `GeminiClient.generateReport(...)`.
+5. If local returns quotes → return local report.
+   - If local returns no quotes → return configured `research.noResultsText`.
 
 ---
 
@@ -180,36 +177,16 @@ So AI helps with interpretation/ranking, but citations are local unless full fal
 
 ---
 
-## 4) Behavior by `research.localOnlyMode`
+## 4) Practical implications
 
-### `research.localOnlyMode=true`
-
-- Local pipeline runs.
-- If no local quotes found, app returns configured `research.noResultsText`.
-- **No `generateReport(...)` fallback** to external quote synthesis.
-
-### `research.localOnlyMode=false`
-
-- Local pipeline still runs first.
-- If local quotes exist, they are returned.
-- If local quotes are empty, app calls `GeminiClient.generateReport(...)`.
-  - This returns JSON summary + quotes (or exact `noResultsText`).
-  - `enforceRequestedAuthor(...)` is applied to fallback output when topic specifies author.
-
----
-
-## 5) Practical implications
-
-- Local-first behavior is always active.
-- `localOnlyMode` controls only **what happens after local zero-hit**.
-- For deterministic/auditable results, keep `localOnlyMode=true`.
-- For recall expansion when local misses, use `localOnlyMode=false`.
+- Local-only behavior is always active — there is no web search fallback.
+- For deterministic/auditable results, the local corpus is the sole source of citations.
 - All citations returned in local mode come directly from the local SQLite corpus — no AI
   synthesis of text. The AI only selects which passages to surface and how to order them.
 
 ---
 
-## 6) Debugging aids
+## 5) Debugging aids
 
 Set `research.debugIntent=true` to see:
 

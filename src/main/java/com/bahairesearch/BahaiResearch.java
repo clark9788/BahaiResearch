@@ -303,37 +303,18 @@ public class BahaiResearch extends Application {
             System.out.println("Source link clicked! Locator: " + locator + ", RelativeSourceUrl: " + relativeSourceUrl + ", DeepLink: " + deepLink);
             try {
                 if (locator != null && locator.matches("\\d+")) {
-                    // xhtml with anchor ID — open in browser via local HTTP server
-                    System.out.println("Attempting to open via HostServices: " + deepLink);
-                    getHostServices().showDocument(deepLink);
-                    System.out.println("HostServices.showDocument called successfully.");
+                    // xhtml with anchor ID — open in browser via local HTTP server.
+                    // deepLink is an http://localhost URL, so #fragment navigation works on every OS.
+                    openTarget(deepLink);
                 } else if (appConfig != null && relativeSourceUrl != null) {
-                    // docx/pdf — open with registered OS handler (Word, Edge PDF viewer, etc.)
+                    // docx/pdf — open with the registered OS handler (Word, PDF viewer, etc.)
                     java.io.File file = Path.of(appConfig.corpusBasePath())
                         .resolve(relativeSourceUrl).toAbsolutePath().toFile();
-                    String fileUri = file.toURI().toString();
-                    System.out.println("Attempting to open file via HostServices: " + fileUri);
-                    getHostServices().showDocument(fileUri);
-                    System.out.println("HostServices.showDocument called successfully for file.");
+                    openTarget(file.toURI().toString());
                 }
             } catch (Exception ex) {
-                System.err.println("Error opening document via HostServices: " + ex.getMessage());
+                System.err.println("Error opening source: " + ex.getMessage());
                 ex.printStackTrace();
-                try {
-                    // Fallback to Desktop API if JavaFX HostServices fails
-                    if (locator != null && locator.matches("\\d+")) {
-                        System.out.println("Attempting fallback via Desktop.browse: " + deepLink);
-                        Desktop.getDesktop().browse(new URI(deepLink));
-                    } else if (appConfig != null && relativeSourceUrl != null) {
-                        java.io.File file = Path.of(appConfig.corpusBasePath())
-                            .resolve(relativeSourceUrl).toAbsolutePath().toFile();
-                        System.out.println("Attempting fallback via Desktop.open: " + file);
-                        Desktop.getDesktop().open(file);
-                    }
-                } catch (Exception fallbackEx) {
-                    System.err.println("Error opening document via Desktop API: " + fallbackEx.getMessage());
-                    fallbackEx.printStackTrace();
-                }
             }
         });
 
@@ -348,6 +329,47 @@ public class BahaiResearch extends Application {
         if (textNode != null) {
             ta.setPrefHeight(textNode.getBoundsInLocal().getHeight() + 30);
         }
+    }
+
+    /**
+     * Opens a URL/URI (http://localhost deep link, or a file: URI) using the most reliable
+     * mechanism for the current OS.
+     *
+     * <p>On Linux, JavaFX {@code HostServices.showDocument} and AWT {@code Desktop.browse} are
+     * unreliable (they silently no-op under Wayland/GTK), so we shell out to {@code xdg-open},
+     * the standard freedesktop opener that works on both X11 and Wayland. On Windows/macOS we
+     * use the AWT Desktop API, falling back to HostServices.</p>
+     */
+    private void openTarget(String target) throws Exception {
+        String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+        boolean isLinux = os.contains("linux") || os.contains("nix") || os.contains("nux");
+
+        if (isLinux) {
+            // xdg-open accepts both http(s) URLs and file: URIs, on X11 and Wayland.
+            System.out.println("Opening via xdg-open: " + target);
+            new ProcessBuilder("xdg-open", target).inheritIO().start();
+            return;
+        }
+
+        // Windows / macOS: use the AWT Desktop API. Local files open with their registered
+        // handler (Word, PDF viewer); http(s) URLs open in the default browser (#fragment kept).
+        boolean isFileTarget = target.startsWith("file:");
+        if (Desktop.isDesktopSupported()) {
+            Desktop desktop = Desktop.getDesktop();
+            if (isFileTarget && desktop.isSupported(Desktop.Action.OPEN)) {
+                System.out.println("Opening via Desktop.open: " + target);
+                desktop.open(new java.io.File(new URI(target)));
+                return;
+            }
+            if (!isFileTarget && desktop.isSupported(Desktop.Action.BROWSE)) {
+                System.out.println("Opening via Desktop.browse: " + target);
+                desktop.browse(new URI(target));
+                return;
+            }
+        }
+
+        System.out.println("Opening via HostServices.showDocument: " + target);
+        getHostServices().showDocument(target);
     }
 
     /**

@@ -329,6 +329,10 @@ Since you have:
    - Number of Gemini API calls
    - Whether the most relevant passage appears in results at all
 5. Iterate on Phase 4 if needed based on A/B results
+   - __`research.aiMode=none`__ — verify pure BM25 returns results with zero Gemini calls (check network or debug logs)
+   - __`research.aiMode=rerank-only`__ — intent resolver skipped, reranker still fires
+   - __`research.aiMode=full`__ (default, or omit) — should match pre-Phase-5 behavior exactly
+
 
 ---
 

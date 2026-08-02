@@ -13,7 +13,6 @@ Desktop research assistant for finding sourced Bahá’í quotes from a **local 
 - Orginally was set up to use Gemini AI and look for quotes on the web, but there were hallucinations
 - AI now evaluates research input and ranks words for search. It also tries to guess a good source -- author, title
 - AI also ranks the returned quotes in order of most relevant
-- AI can be returned to web search by setting research.localOnlyMode=false in .properties file. 
 - Future plans to research other AI api's to see if they perform better.
 - Each result includes a clickable Source link that opens the browser at the exact paragraph. Locators are HTML anchor IDs embedded in the bahai.org xhtml source files. For the 4 non-xhtml files (docx/pdf), Source opens the file in the registered OS handler (Word, Edge, etc.), but goes to the beginning of file. Use Search for these
 - Used chatgpt-5.3-codex for original design and coding. Used sonnet-4.6 for improvements to search algorithm and finish
@@ -45,8 +44,6 @@ Create a local file like `bahai-research.properties in a directory outside the a
 gemini.apiKey=YOUR_API_KEY
 gemini.model=gemini-2.5-flash
 
-research.requiredSite=https://oceanlibrary.com/  ** The bahai.org/library is not currently indexed.
-research.localOnlyMode=true                      ** uses local database when true, uses local and web search when false. Goes with the research.requiredSite above. This methodology produced some hallucinations.
 research.debugIntent=false                       ** discarded for production
 research.noResultsText=No Results                ** text for No Results in output
 research.maxQuotes=8                             ** Change the number of quotes returned
