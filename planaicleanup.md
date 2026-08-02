@@ -281,6 +281,109 @@ if ("rerank-only".equals(aiMode)) {
 
 ---
 
+## Post-AI Improvement: Always Run Phrase Query (Remove `!nearFired` Gate)
+
+Discovered during `aiMode` testing (Aug 2, 2026): When the user types a short quote like "best beloved justice" (3 tokens), the NEAR proximity query fires and the phrase LIKE query is **skipped** due to the `!nearFired` gate at `LocalCorpusSearchService.java` line ~175. This means the exact quote text never gets embedded into the candidate pool with the `-99,999` score boost, and the reranker has to work with only BM25-scored candidates.
+
+**Fix:** Remove the `&& !nearFired` condition so the phrase LIKE query always runs regardless of whether NEAR fired. NEAR still does its job for proximity scoring; the phrase query adds the strongest reranker signal. Cost: one extra SQL LIKE query per search.
+
+```java
+// Before (line ~174-175):
+if (topicFtsTokens.size() >= 2 && !nearFired) {
+
+// After:
+if (topicFtsTokens.size() >= 2) {
+```
+
+This should be implemented and A/B tested after the Phase 4-5 AI work is confirmed stable, since it changes the reranker's input pool and could interact with the AI concepts → FTS changes.
+
+---
+
+## Post-AI Improvement: Zero-Result OR-Fallback When Token Gate Blocked AI
+
+Discovered during `aiMode` testing (Aug 2, 2026): The Phase 3 token-count gate (`≤3 tokens → skipAiIntent`) saves API calls for short queries, but has a **blind spot for modern vocabulary not present in the Bahá'í corpus**.
+
+**Real-world failure cases:**
+
+| Query | Tokens | AI Skipped? | AND Result | Outcome |
+|---|---|---|---|---|
+| "sex change surgery" | 3 | ✅ skipped | 0 hits | **Dead end — no results** |
+| "gender reassignment" | 2 | ✅ skipped | 0 hits | **Dead end — no results** |
+| "protest movement" | 2 | ✅ skipped | 1 hit | **Starved reranker** |
+
+Meanwhile, the long-form equivalent "Is gender reassignment surgery supported by the Bahá'í Faith?" produced **144 OR hits** because AI expanded `"transgender"` into `["medical ethics", "gender identity", "surgery"]` — concepts that map to actual corpus vocabulary.
+
+**The problem:** The gate correctly observes that 2-3 tokens don't need AI *most of the time* ("social action" → 144 NEAR hits). But it has no recovery path when the raw tokens don't appear in the corpus at all.
+
+**Fix: Add an OR-fallback trigger** — if the gate blocked AI *and* both NEAR and AND returned zero hits, retroactively run the intent resolver for concept expansion:
+
+```java
+if (skipAiIntent && nearHits == 0) {
+    // NEAR fires for 2-3 tokens; if it found nothing, the raw tokens
+    // likely don't appear in the corpus. Retroactively run AI to get
+    // concept expansion that bridges the vocabulary gap.
+    List<String> knownWorkTitles = loadKnownWorkTitles(corpusPaths);
+    GeminiClient fallbackGemini = new GeminiClient(appConfig);
+    intent = fallbackGemini.resolveLocalQueryIntent(topic, knownWorkTitles, appConfig);
+    logCount(appConfig, "AI retroactively invoked — NEAR=0 on gate-skipped query=0", 0);
+    
+    // Rebuild FTS queries using AI concepts
+    if (!intent.concepts().isEmpty()) {
+        String conceptText = String.join(" ", intent.concepts());
+        List<String> conceptTokens = SearchCore.extractFtsTokens(conceptText, manualRequiredAuthor);
+        if (conceptTokens.size() >= 2) {
+            queryForFts = conceptText;
+            ftsQuery = SearchCore.toFtsQuery(queryForFts, manualRequiredAuthor);
+            orFtsQuery = SearchCore.toFtsQueryOr(queryForFts, manualRequiredAuthor);
+            // Re-run FTS with the new queries
+        }
+    }
+}
+```
+
+**Cost:** One additional Gemini API call only when a short query would have returned zero results. In the common case (short query with hits), the gate still saves the call.
+
+**Testing:** The three failure cases above should each return results after this fix instead of empty pages.
+
+This should be implemented and tested after Phase 4 concept expansion is confirmed stable, since it depends on the same AI → FTS query path.
+
+---
+
+## Post-AI Improvement: Exclude Omnipresent Corpus Tokens from AI-Concept OR Queries
+
+Discovered during `aiMode` testing (Aug 2, 2026): When AI concepts include tokens that appear in **every** passage in the corpus (e.g., `baha*`, `baha'i*`), the OR pool saturates at the FTS5 LIMIT of 144 with indiscriminate matches, crowding out signal from the rarer discriminating tokens.
+
+**Real-world example:**
+
+| Query | AI Concepts | OR Tokens | OR Hits | Problem |
+|---|---|---|---|---|
+| "homosexual involved with baha'i community" | `["homosexuality", "community involvement", "Baha'i community"]` | `homosexuality* OR community* OR involvement* OR baha*` | **144** (ceiling) | `baha*` alone matches every passage; 138 candidates after filtering are mostly random |
+
+Without `baha*` in the OR query, the remaining tokens (`homosexuality*`, `community*`, `involvement*`) would produce a smaller, higher-signal pool where every passage actually contains at least one of the discriminating concepts rather than being dragged in by the omnipresent token.
+
+**Fix: Filter omnipresent tokens from AI-concept OR queries.** Add corpus-wide tokens (at minimum `baha`, `bahai`, `bahaullah`, `abdul`, `abdu'l`) to the noise-token list that `extractFtsTokens()` already filters. These tokens provide zero discriminating power in an OR query because they match literally every passage.
+
+Alternatively, compute token frequency at ingest time and store a blacklist of tokens whose frequency exceeds 95% of the corpus — then filter those from OR queries only (they're still valid in AND queries where they narrow by requiring a specific author).
+
+```java
+// In extractFtsTokens() or a new helper:
+private static final Set<String> OMNIPRESENT_TOKENS = Set.of(
+    "baha", "bahai", "bahaullah", "abdul", "baha'u'llah",
+    "god", "lord"  // likely near-universal in religious corpus
+);
+
+// Filter from OR tokens only (keep in AND for author-specific queries):
+List<String> orTokens = conceptTokens.stream()
+    .filter(t -> !OMNIPRESENT_TOKENS.contains(t))
+    .collect(Collectors.toList());
+```
+
+**Cost:** Zero runtime cost — a static Set lookup per token during query construction.
+
+**Testing:** The query "homosexual involved with baha'i community" should produce fewer than 144 OR hits (more discriminating pool), and the reranker should still rank relevant passages at the top. The AND query path is unaffected.
+
+---
+
 ## Phase 6 — Cleanup & Polish
 
 After Phases 1-5 are confirmed working:

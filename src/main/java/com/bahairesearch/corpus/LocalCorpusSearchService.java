@@ -67,7 +67,6 @@ public final class LocalCorpusSearchService {
             // "full"        = default, all AI features enabled
             // "none"        = skip all AI (intent resolver + reranker), pure FTS
             // "rerank-only" = skip intent resolver, keep reranker
-            // "concept-fts" = same as "full", concept-driven FTS queries
             String aiMode = appConfig.aiMode() != null ? appConfig.aiMode().toLowerCase(Locale.ROOT) : "full";
 
             // Extract FTS tokens first to decide whether AI intent resolution is worthwhile
