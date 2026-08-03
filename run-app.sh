@@ -34,7 +34,7 @@ JAR_PATH=$(find "$SCRIPT_DIR/build/libs" "$SCRIPT_DIR/target" -name "BahaiResear
 
 if [ -z "$JAR_PATH" ]; then
   # Fallback to the default version if not found
-  JAR_PATH="$SCRIPT_DIR/build/libs/BahaiResearch-1.3.2-SNAPSHOT-all.jar"
+  JAR_PATH="$SCRIPT_DIR/build/libs/BahaiResearch-1.4.0-all.jar"
 fi
 
 echo "Using KEY_PATH=$KEY_PATH"

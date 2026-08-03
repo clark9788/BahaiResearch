@@ -15,13 +15,13 @@ mkdir -p "$OUT/build/libs"
 mkdir -p "$OUT/data/corpus"
 
 echo "[2/5] Copying runtime artifacts..."
-if [ ! -f "$SCRIPT_DIR/build/libs/BahaiResearch-1.3.2-SNAPSHOT-all.jar" ]; then
-  echo "ERROR: Missing JAR at build/libs/BahaiResearch-1.3.2-SNAPSHOT-all.jar"
+if [ ! -f "$SCRIPT_DIR/build/libs/BahaiResearch-1.4.0-all.jar" ]; then
+  echo "ERROR: Missing JAR at build/libs/BahaiResearch-1.4.0-all.jar"
   echo "Build first: ./compile.sh"
   exit 1
 fi
 
-cp "$SCRIPT_DIR/build/libs/BahaiResearch-1.3.2-SNAPSHOT-all.jar" "$OUT/build/libs/"
+cp "$SCRIPT_DIR/build/libs/BahaiResearch-1.4.0-all.jar" "$OUT/build/libs/"
 cp "$SCRIPT_DIR/run-app.sh" "$OUT/"
 chmod +x "$OUT/run-app.sh"
 cp "$SCRIPT_DIR/bahai-research.local-only.example.properties" "$OUT/bahai-research.properties"

@@ -165,7 +165,37 @@ There are two AI calls during local retrieval:
 1. **Intent resolution**: `resolveLocalQueryIntent(...)`
    - Input: topic + known work titles (loaded from DB)
    - Output JSON: `author`, `workTitle`, `knownPhrase`, `concepts[]`
-   - Note: `author` and `workTitle` from this output are **conditionally suppressed** (see
+   - Note: `author` and `workTitle` from this output are **conditionally suppressed** (seeINFO: [IntentDebug] topic="Death with dignity is a new law in Illinois. What do the Baha'i Writings have to say about this?", ftsQuery="death* AND dignity* AND new* AND (law* OR illinois* OR what* OR baha* OR writings* OR have* OR say* OR this*)", aiAuthor="", aiWorkTitle="", aiKnownPhrase="", aiConcepts=[assisted suicide, death with dignity, euthanasia, end of life decisions], requiredAuthor="", requestedBookTokens=[], conceptTerms=[death, dignity, new, law, illinois, what, baha, writings, have, say, this, assisted, suicide, euthanasia, life, decisions]
+Aug 02, 2026 6:50:17 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] FtsQuery AND: death* AND dignity* AND new* AND (law* OR illinois* OR what* OR baha* OR writings* OR have* OR say* OR this*) ?=0
+Aug 02, 2026 6:50:17 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] AND hits=0
+Aug 02, 2026 6:50:17 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] FtsQuery OR: death* OR dignity* OR new* OR law* OR illinois* OR what* OR baha* OR writings* OR have* OR say* OR this* ?=0
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] OR hits=144
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] hits=144
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] PhraseQuery topic LIKE: %death%with%dignity%is%a%new%law%in%illinois%what%do%the%baha%i%writings%have%to%say%about%this% ?=0
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] PhraseQuery topic hits=0
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] after phrase merge=144
+Aug 02, 2026 6:50:18 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] candidatePool (main pipeline)=143
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logIntentDebug
+INFO: [IntentDebug] topic="Suicide", ftsQuery="suicide*", aiAuthor="", aiWorkTitle="", aiKnownPhrase="", aiConcepts=[mental health, suicide, sanctity of life], requiredAuthor="", requestedBookTokens=[], conceptTerms=[suicide, mental, health, sanctity, life]
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] FtsQuery AND: suicide* ?=0
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] AND hits=8
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] hits=8
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] after phrase merge=8
+Aug 02, 2026 6:51:10 AM com.bahairesearch.corpus.LocalCorpusSearchService logCount
+INFO: [PipelineCount] candidatePool (main pipeline)=8
      constraint resolution above) — the app uses them only when there is no UI-selected author
      or when the topic explicitly references a book title.
 

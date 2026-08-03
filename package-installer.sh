@@ -10,7 +10,7 @@
 
 PACKAGE_NAME="${1:-installer}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-JAR="$SCRIPT_DIR/build/libs/BahaiResearch-1.3.2-SNAPSHOT-all.jar"
+JAR="$SCRIPT_DIR/build/libs/BahaiResearch-1.4.0-all.jar"
 RUNTIME="$SCRIPT_DIR/runtime"
 STAGING="$SCRIPT_DIR/dist/jpackage-input"
 OUT="$SCRIPT_DIR/dist/$PACKAGE_NAME"
@@ -67,11 +67,11 @@ echo "[3/4] Running jpackage (deb installer)..."
 jpackage \
   --type deb \
   --name BahaiResearch \
-  --app-version 1.3.2 \
+  --app-version 1.4.0 \
   --vendor "BahaiResearch" \
   --description "Baha'i scripture research tool" \
   --input "$STAGING" \
-  --main-jar BahaiResearch-1.3.2-SNAPSHOT-all.jar \
+  --main-jar BahaiResearch-1.4.0-all.jar \
   --runtime-image "$RUNTIME" \
   --java-options "-Dbahai.keyPath=\$APPDIR/bahai-research.properties" \
   --java-options "-Dbahai.corpusPath=\$APPDIR/data/corpus" \
@@ -86,10 +86,10 @@ if [ $? -ne 0 ]; then
   jpackage \
     --type app-image \
     --name BahaiResearch \
-    --app-version 1.3.2 \
+    --app-version 1.4.0 \
     --vendor "BahaiResearch" \
     --input "$STAGING" \
-    --main-jar BahaiResearch-1.3.2-SNAPSHOT-all.jar \
+    --main-jar BahaiResearch-1.4.0-all.jar \
     --runtime-image "$RUNTIME" \
     --java-options "-Dbahai.keyPath=\$APPDIR/bahai-research.properties" \
     --java-options "-Dbahai.corpusPath=\$APPDIR/data/corpus" \

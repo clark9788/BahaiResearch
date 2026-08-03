@@ -262,17 +262,6 @@ public class GeminiClient {
             """.formatted(topic, items, maxQuotes);
     }
 
-    private String stripMarkdownCodeFence(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-            int firstNewline = trimmed.indexOf('\n');
-            if (firstNewline > 0) {
-                return trimmed.substring(firstNewline + 1, trimmed.length() - 3).trim();
-            }
-        }
-        return trimmed;
-    }
-
     private String truncate(String value, int maxLength) {
         if (value == null || value.length() <= maxLength) {
             return value == null ? "" : value;
