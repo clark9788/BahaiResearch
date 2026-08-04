@@ -174,14 +174,14 @@ public final class LocalCorpusSearchService {
             boolean nearFired = hitsResult.effectiveQuery().startsWith("NEAR(");
             String topicLikePattern = "%" + SearchCore.normalizeForMatch(topic).replace(" ", "%") + "%";
             List<CorpusSearchHit> combinedPhraseHits = new ArrayList<>();
-            if (topicFtsTokens.size() >= 2 && !nearFired) {
+            if (topicFtsTokens.size() >= 2) {
                 logCount(appConfig, "PhraseQuery topic LIKE: " + topicLikePattern + " →", 0);
                 combinedPhraseHits.addAll(fetchPhraseHits(
                     corpusPaths, topic, retrievalPoolSize,
                     requiredAuthor, explicitTitle, requestedBookTokens));
                 logCount(appConfig, "PhraseQuery topic hits", combinedPhraseHits.size());
             }
-            if (intent.knownPhrase() != null && !intent.knownPhrase().isBlank() && !nearFired) {
+            if (intent.knownPhrase() != null && !intent.knownPhrase().isBlank()) {
                 String aiLikePattern = "%" + SearchCore.normalizeForMatch(intent.knownPhrase()).replace(" ", "%") + "%";
                 logCount(appConfig, "PhraseQuery AI LIKE: " + aiLikePattern + " →", 0);
                 List<CorpusSearchHit> aiPhraseHits = fetchPhraseHits(
