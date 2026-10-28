@@ -64,7 +64,7 @@ build-runtime-image.bat
 3) (Optional for release packaging):
 
 ```cmd
-package-installer.bat //This must be updated in 6 places for new version
+package-installer.bat //This must be updated in 8 places for new version
 
 4) Run inno with BahaiResearch.iss for installable Windows file
 
