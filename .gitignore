@@ -3,6 +3,7 @@
 # =========================
 build/
 .gradle/
+target/
 
 runtime/
 dist/
