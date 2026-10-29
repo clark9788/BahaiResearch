@@ -55,6 +55,10 @@ gradlew.bat shadowJar
 build.gradle needs to be updated with new verion numbers.
 ```
 
+For the Windows installer release, see "Windows installer release" below — the installer is
+now produced from a payload built on Linux, so the steps below are only needed for a
+portable app-image built directly on Windows.
+
 2) (Optional but recommended for end-user distribution) Build private Java runtime:
 
 ```cmd
@@ -64,11 +68,55 @@ build-runtime-image.bat
 3) (Optional for release packaging):
 
 ```cmd
-package-installer.bat //This must be updated in 8 places for new version
-
-4) Run inno with BahaiResearch.iss for installable Windows file
-
+package-installer.bat
 ```
+
+### Windows installer release (payload built on Linux, Inno compiled on Windows)
+
+The Windows installer no longer requires Java, Gradle, jpackage, or WiX on the Windows
+machine — only Inno Setup. All build work happens on Linux.
+
+1) On Linux, build the payload and the release asset:
+
+```bash
+./tools/package-windows-payload.sh
+```
+
+This produces `dist/installer/BahaiResearch/` (the `{app}` layout: `app/` with a universal
+jar that runs on Windows and Linux, `runtime/` cross-built by `jlink` from the Windows JDK,
+and the curated sources) plus `dist/BahaiResearch-win-payload-<version>.zip`.
+
+2) Upload the zip to the matching GitHub release:
+
+```bash
+gh release upload v1.5.0 dist/BahaiResearch-win-payload-1.5.0.zip --clobber
+```
+
+3) On Windows, one command downloads the payload and compiles the installer:
+
+```cmd
+tools\release-windows.bat 1.5.0
+```
+
+Output lands in `dist\installer-output\BahaiResearch-Setup.exe`. The version comes from
+`build.gradle` on the Linux side and is passed to Inno as `/DMyAppVersion`, so nothing has
+to be edited on Windows.
+
+`assets/BahaiResearch.ico` supplies the icon for the desktop and Start menu shortcuts, the
+uninstaller entry, and the installer itself. It is already committed, so a normal release
+does not touch it.
+
+To regenerate it after the Android launcher artwork changes, run this from a Linux shell
+(Pillow is required and is not part of the Python standard library):
+
+```bash
+sudo apt install python3-pil    # or: pip install Pillow
+python3 tools/make-windows-icon.py
+```
+
+It reads `BahaiResearchA/app/src/main/ic_launcher-playstore.png` by default; use `--source`
+if that project lives elsewhere. The generated file is written to `assets/BahaiResearch.ico`,
+so no Windows machine is involved.
 
 ### Follow-on build runs (normal development/release updates)
 
@@ -76,13 +124,15 @@ Most updates only need:
 
 ```cmd
 gradlew.bat shadowJar
-package-installer.bat
 ```
 
 You only need to rerun `build-runtime-image.bat` when:
 - Java version changes,
 - runtime image options/modules change,
 - or `runtime/` is missing/corrupted.
+
+`package-installer.bat` is still useful for a portable jpackage app-image on a Windows
+machine, but it is no longer part of the installer release path.
 
 ### Output artifacts
 
