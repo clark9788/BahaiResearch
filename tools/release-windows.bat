@@ -60,16 +60,23 @@ if not "%PAYLOAD_VERSION%"=="%VERSION%" (
 )
 
 echo [3/4] Locating Inno Setup compiler ...
-set "ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
-if not exist "%ISCC%" set "ISCC=%ProgramFiles%\Inno Setup 6\ISCC.exe"
-if not exist "%ISCC%" (
-  where ISCC >nul 2>&1
-  if errorlevel 1 (
-    echo ERROR: ISCC.exe not found. Install Inno Setup 6.
-    exit /b 1
-  )
-  set "ISCC=ISCC"
+REM Inno Setup is not put on PATH. Its install drive is not assumed to be C:, so probe the
+REM explicit override, then the uninstall registry entry, then the usual folders on C:-F:.
+set "ISCC="
+if defined INNO_ISCC if exist "%INNO_ISCC%" set "ISCC=%INNO_ISCC%"
+if not defined ISCC call :probe_registry
+if not defined ISCC call :probe_common_dirs
+if not defined ISCC call :probe_drives
+if not defined ISCC call :probe_path
+if not defined ISCC (
+  echo ERROR: ISCC.exe not found. Inno Setup 6 is required.
+  echo        Searched INNO_ISCC, the Inno Setup uninstall registry entry,
+  echo        Program Files on drives C: to F:, and PATH.
+  echo        Set the full path and re-run, for example:
+  echo          set "INNO_ISCC=D:\Program Files ^(x86^)\Inno Setup 6\ISCC.exe"
+  exit /b 1
 )
+echo        Using %ISCC%
 
 echo [4/4] Compiling installer %VERSION% ...
 "%ISCC%" /DMyAppVersion=%VERSION% "%ROOT%\BahaiResearch.iss"
@@ -81,4 +88,39 @@ if errorlevel 1 (
 echo.
 echo Done. Installer written to %ROOT%\dist\installer-output
 echo Upload BahaiResearch-Setup.exe to the v%VERSION% release.
+exit /b 0
+
+:probe_registry
+for %%K in (
+  "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1"
+  "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1"
+  "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1"
+) do if not defined ISCC call :try_registry_key %%K
+exit /b 0
+
+:try_registry_key
+set "_dir="
+for /f "tokens=2,*" %%A in ('reg query %1 /v InstallLocation 2^>nul ^| find "InstallLocation"') do set "_dir=%%B"
+if not defined _dir exit /b 0
+if "%_dir:~-1%"=="\" set "_dir=%_dir:~0,-1%"
+if exist "%_dir%\ISCC.exe" set "ISCC=%_dir%\ISCC.exe"
+exit /b 0
+
+:probe_common_dirs
+set "_pf86=%ProgramFiles(x86)%"
+set "_pf=%ProgramFiles%"
+for %%D in ("%_pf86%" "%_pf%") do (
+  if not defined ISCC if exist "%%~D\Inno Setup 6\ISCC.exe" set "ISCC=%%~D\Inno Setup 6\ISCC.exe"
+)
+exit /b 0
+
+:probe_drives
+for %%L in (C D E F) do (
+  if not defined ISCC if exist "%%L:\Program Files (x86)\Inno Setup 6\ISCC.exe" set "ISCC=%%L:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+  if not defined ISCC if exist "%%L:\Program Files\Inno Setup 6\ISCC.exe" set "ISCC=%%L:\Program Files\Inno Setup 6\ISCC.exe"
+)
+exit /b 0
+
+:probe_path
+for /f "delims=" %%P in ('where ISCC.exe 2^>nul') do if not defined ISCC set "ISCC=%%P"
 exit /b 0
