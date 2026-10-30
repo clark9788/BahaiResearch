@@ -220,17 +220,15 @@ Two design traps found and avoided:
       confirmed on the desktop shortcut and in Settings > Installed apps
 - [x] Source deep link uses `http://127.0.0.1:PORT/...`, confirming the loopback bind
 - [x] New corpus present in the installed app: "Living the Life" appears in the Title list
-- [ ] Run on a machine without Java installed, to demonstrate the bundled runtime is used
+- [x] Bundled runtime in use: with the app running, `(Get-Process javaw).Path` reported
+      `D:\BahaiResearch\BahaiResearch\runtime\bin\javaw.exe`, i.e. the installed runtime,
+      not the host JDK
 
 ## Remaining risks
 
 * **No `BahaiResearch.exe`.** Task Manager shows `javaw.exe`; there is no EXE to pin or
   associate. If that matters, generating a real launcher with launch4j on Linux would
   restore it without needing Windows tooling.
-* **Runtime independence is not yet demonstrated.** Every machine used so far already has a
-  JDK installed. The shortcut invokes `{app}\runtime\bin\javaw.exe`, so it cannot fall back
-  to a system JDK, but this is worth confirming with `(Get-Process javaw).Path` while the app
-  runs, or by installing on a machine that has never had Java.
 * **Upgrade path untested.** No machine has installed 1.5.0 over 1.3.2, so the `[InstallDelete]`
   behaviour (old launcher, old jar, stale `corpus.db`) has not been exercised.
 * **First Inno compile is now verified** (2026-10-30). Three defects surfaced and were fixed
