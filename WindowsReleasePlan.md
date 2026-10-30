@@ -208,9 +208,10 @@ Two design traps found and avoided:
 - [x] E2: universal jar contains both `.so` and `.dll` JavaFX natives, exactly once each
 - [x] E2: the same jar starts on Linux (`./run-app.sh`) — no regression
 - [x] Payload layout: bootstrap + curated ingest yields 96 documents / 33,720 passages
-- [ ] E3: `iscc /DMyAppVersion=...` stamps the requested version (needs Inno, first run)
+- [x] E3: first Inno compile succeeded on Windows (20.140 s) via `tools\release-windows.bat 1.5.0`,
+      producing `dist\installer-output\BahaiResearch-Setup.exe`
 - [ ] Installer on Windows: app launches via the shortcut, first search ingests the corpus
-- [ ] Upgrade over a 1.5.0 install: old `BahaiResearch.exe`/cfg removed, stale `corpus.db` deleted
+- [ ] Upgrade over an existing install: old `BahaiResearch.exe`/cfg removed, stale `corpus.db` deleted
 - [x] Icon: `assets/BahaiResearch.ico` (9 sizes) used for shortcuts, uninstaller and Setup.exe
 
 ## Remaining risks
@@ -218,9 +219,11 @@ Two design traps found and avoided:
 * **No `BahaiResearch.exe`.** Task Manager shows `javaw.exe`; there is no EXE to pin or
   associate. If that matters, generating a real launcher with launch4j on Linux would
   restore it without needing Windows tooling.
-* **First Windows compile unverified.** The Inno script and the `.bat` were written and
-  reviewed but cannot be executed on Linux. Expect possible syntax iteration on the first
-  run — chiefly the `[Files]` `Excludes` and the doubled quotes in `Parameters:`.
+* **First Inno compile is now verified** (2026-10-30). Three defects surfaced and were fixed
+  during that run: the ISCC lookup assumed `%ProgramFiles(x86)%`, i.e. drive C:, so an Inno
+  install on D: was never found; `ROOT` kept a `..` component; and an unescaped `)` in an
+  `echo` inside an `else` block truncated the message and closed the block early.
+  Still untested: the installed application itself, and the upgrade path over an existing install.
 * **Payload size** is 87 MB zipped because the curated sources travel inside it. This
   matches the previous jpackage app-image, but the release asset is now separate from the
   installer, so both must be uploaded per release.
