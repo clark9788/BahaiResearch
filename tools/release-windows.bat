@@ -37,7 +37,7 @@ if not exist "%ZIP%" (
 ) else (
   echo [1/4] Payload already present: %ZIP%
   for %%F in ("%ZIP%") do echo        %%~zF bytes, modified %%~tF
-  echo        (delete it to download fresh from the release asset)
+  echo        ^(delete it to download fresh from the release asset^)
 )
 
 echo [2/4] Extracting to %STAGE% ...
