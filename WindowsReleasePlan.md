@@ -251,10 +251,23 @@ is 10,360 bytes shorter, exactly the certificate size, so the signature is dropp
 than merely trimmed. jpackage output was unsigned in the same way, so any earlier Inno
 installer is affected too.
 
-Turning SAC off is a one-way switch: re-enabling requires reinstalling Windows. On the
-development VM a snapshot makes this safe to trial. For distribution to others the options
-are a code-signing certificate (new certificates start with little reputation), an MSIX
-published through the Store (Store-signed, so trusted), or telling recipients to disable SAC.
+Turning SAC off is a one-way switch: re-enabling requires reinstalling Windows. SAC is a
+property of the machine, not of the file, so nothing about how the installer is built or
+delivered avoids it.
+
+Evidence from a second Windows machine: v1.3.2's `Setup.exe` was downloaded from GitHub (so it
+carried Mark-of-the-Web) and installed there with only the usual SmartScreen prompt. That
+machine has SAC off. Two conclusions:
+
+* Mark-of-the-Web affects SmartScreen only, and SmartScreen is bypassable via "More info" then
+  "Run anyway".
+* The SAC block follows the machine, not the file's origin. It hit a locally compiled installer
+  that had no Mark-of-the-Web at all.
+
+So most recipients, including anyone on Windows 10, can install an unsigned build by clicking
+through SmartScreen. Only machines with SAC on need signing, Store distribution, or a SAC-off
+instruction. The development host itself has SAC on, which makes it a harsher environment than
+the target machines.
 
 ## 6. Related gotchas (outside this file's scope)
 
