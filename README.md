@@ -46,37 +46,15 @@ It is a separater project and is imported by gradle during the build of this pro
 
 All commands below are run from project root.
 
-### First-time build run (new machine / clean setup)
+### Windows installer release (normal path)
 
-1) Build app jar:
+The installer needs nothing but Inno Setup on Windows: no JDK, Gradle, jpackage or WiX.
+All building happens on Linux.
 
-``` cmd
-gradlew.bat shadowJar
-build.gradle needs to be updated with new verion numbers.
-```
+The version lives only in `build.gradle` (`version = '1.5.0'`). Bump it there and every
+downstream step follows, including the number stamped into the installer.
 
-For the Windows installer release, see "Windows installer release" below — the installer is
-now produced from a payload built on Linux, so the steps below are only needed for a
-portable app-image built directly on Windows.
-
-2) (Optional but recommended for end-user distribution) Build private Java runtime:
-
-```cmd
-build-runtime-image.bat
-```
-
-3) (Optional for release packaging):
-
-```cmd
-package-installer.bat
-```
-
-### Windows installer release (payload built on Linux, Inno compiled on Windows)
-
-The Windows installer no longer requires Java, Gradle, jpackage, or WiX on the Windows
-machine — only Inno Setup. All build work happens on Linux.
-
-1) On Linux, build the payload and the release asset:
+1) On Linux, build the payload:
 
 ```bash
 ./tools/package-windows-payload.sh
@@ -84,78 +62,56 @@ machine — only Inno Setup. All build work happens on Linux.
 
 This produces `dist/installer/BahaiResearch/` (the `{app}` layout: `app/` with a universal
 jar that runs on Windows and Linux, `runtime/` cross-built by `jlink` from the Windows JDK,
-and the curated sources) plus `dist/BahaiResearch-win-payload-<version>.zip`.
+and the curated sources) plus `dist/BahaiResearch-win-payload-<version>.zip`, about 87 MB.
 
-2) Upload the zip to the matching GitHub release:
+2) Copy the zip to the Windows machine and place it in the project's `dist\` folder:
 
 ```bash
-gh release upload v1.5.0 dist/BahaiResearch-win-payload-1.5.0.zip --clobber
+cp dist/BahaiResearch-win-payload-<version>.zip /media/     # VirtualBox shared folder
 ```
 
-3) On Windows, one command downloads the payload and compiles the installer:
+```cmd
+move X:\BahaiResearch-win-payload-<version>.zip D:\AI-Python\BahaiResearch\dist\
+```
+
+The script packages this file if it is present and skips the download. It echoes the zip's
+byte size and timestamp, which should match what the Linux script printed. Publishing the
+zip as a release asset also works: delete the local copy and the script downloads it.
+
+3) On Windows, compile the installer:
 
 ```cmd
+cd D:\AI-Python\BahaiResearch
+git pull
 tools\release-windows.bat 1.5.0
 ```
 
-Output lands in `dist\installer-output\BahaiResearch-Setup.exe`. The version comes from
-`build.gradle` on the Linux side and is passed to Inno as `/DMyAppVersion`, so nothing has
-to be edited on Windows.
+Output lands in `dist\installer-output\BahaiResearch-Setup.exe`, ready to upload to the
+release. Nothing is edited on Windows.
 
-`assets/BahaiResearch.ico` supplies the icon for the desktop and Start menu shortcuts, the
-uninstaller entry, and the installer itself. It is already committed, so a normal release
-does not touch it.
+### Legacy: portable app-image built on Windows
 
-To regenerate it after the Android launcher artwork changes, run this from a Linux shell
-(Pillow is required and is not part of the Python standard library):
-
-```bash
-sudo apt install python3-pil    # or: pip install Pillow
-python3 tools/make-windows-icon.py
-```
-
-It reads `BahaiResearchA/app/src/main/ic_launcher-playstore.png` by default; use `--source`
-if that project lives elsewhere. The generated file is written to `assets/BahaiResearch.ico`,
-so no Windows machine is involved.
-
-### Follow-on build runs (normal development/release updates)
-
-Most updates only need:
+`package-installer.bat` still works on a Windows machine with a JDK, and produces a portable
+jpackage app-image (plus an exe installer when WiX Toolset 3.x is present). It is not used for
+installer releases any more: its version numbers are hardcoded in several places and must be
+edited by hand for each release.
 
 ```cmd
 gradlew.bat shadowJar
+build-runtime-image.bat
+package-installer.bat
 ```
 
-You only need to rerun `build-runtime-image.bat` when:
-- Java version changes,
-- runtime image options/modules change,
-- or `runtime/` is missing/corrupted.
-
-`package-installer.bat` is still useful for a portable jpackage app-image on a Windows
-machine, but it is no longer part of the installer release path.
+Run `build-runtime-image.bat` again only when the Java version changes, the runtime modules
+change, or `runtime/` is missing.
 
 ### Output artifacts
 
-Primary jar:
-
-```cmd
-gradlew.bat shadowJar
-```
-
-produces:
-
-```text
-target/BahaiResearch-1.0.0-SNAPSHOT-all.jar
-or 
-build/libs/BahaiResearch-1.0.0-SNAPSHOT-all.jar
-```
-
-Packaging script (if used) produces:
-
-```text
-dist/installer/BahaiResearch/
-
-```
+| Command | Output |
+|---|---|
+| `gradlew shadowJar` | `build/libs/BahaiResearch-<version>-all.jar` |
+| `tools/package-windows-payload.sh` | `dist/installer/BahaiResearch/` and `dist/BahaiResearch-win-payload-<version>.zip` |
+| `tools\release-windows.bat <version>` | `dist\installer-output\BahaiResearch-Setup.exe` |
 
 ---
 
@@ -215,12 +171,13 @@ run-app.bat c:\path\to\bahai-research.properties
 
 ## Packaging recommendations
 
-Use `package-installer.bat` for end-user distribution. It includes:
+Use `tools/package-windows-payload.sh` (then `tools\release-windows.bat`) for end-user
+distribution. The payload contains:
 
-- `target/BahaiResearch-1.0.0-SNAPSHOT-all.jar`
-- `data/corpus/curated/en/` (xhtml source files + manifest — required for Source deep links)
-- your local properties file (distributed privately)
-- optional bundled Java runtime (`runtime/`)
+- `app/BahaiResearch-all.jar` — the fat jar, carrying both Linux and Windows JavaFX natives
+- `runtime/` — a private Windows Java runtime from `jlink`, so no Java install is needed
+- `app/data/corpus/curated/en/` (xhtml source files + manifest — required for Source deep links)
+- `app/bahai-research.properties` (distributed privately, with ingest enabled on first run)
 
 On first run the app ingests from the curated source files and builds `corpus.db` locally.
 
