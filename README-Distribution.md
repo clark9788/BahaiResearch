@@ -110,4 +110,10 @@ If you would rather not change that setting, ask for a build signed with a code-
 certificate instead.
 
 
-On first use, Windows Firewall may ask for permission for the Java HTML server to run. This server provides access to the HTML source files #anchor numbers to open file to exact location of quote, but does not need access through the firewall, so deny the firewall rule setup.
+On first use, Windows Firewall may ask for permission for the Java HTML server to run. This
+server provides access to the HTML source files #anchor numbers to open file to exact location
+of quote, but does not need access through the firewall, so deny the firewall rule setup.
+
+Builds from 1.5.0 onward bind that server to 127.0.0.1 only, so the prompt should no longer
+appear. If it does, it comes from an older build. Denying it is always safe: the server is
+reached over loopback, which the firewall does not filter.

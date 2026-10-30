@@ -27,6 +27,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.awt.Desktop;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.file.Files;
@@ -59,7 +60,11 @@ public class BahaiResearch extends Application {
         if (appConfig == null) return;
         try {
             Path serveRoot = Path.of(appConfig.corpusBasePath()).toAbsolutePath();
-            localFileServer = HttpServer.create(new InetSocketAddress(0), 0);
+            // Bind to loopback only. A wildcard bind (new InetSocketAddress(0)) listens on every
+            // interface, which makes Windows Firewall prompt on first launch and would expose the
+            // corpus directory to the local network if the prompt were allowed.
+            localFileServer = HttpServer.create(
+                new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
             localFileServer.createContext("/", exchange -> {
                 String reqPath = exchange.getRequestURI().getPath();
                 if (reqPath.startsWith("/")) reqPath = reqPath.substring(1);
@@ -374,7 +379,7 @@ public class BahaiResearch extends Application {
 
     /**
      * Constructs the URL to open in the browser for a given passage.
-     * Uses the local HTTP server (http://localhost:PORT/relPath#anchor) so that
+     * Uses the local HTTP server (http://127.0.0.1:PORT/relPath#anchor) so that
      * fragment navigation works reliably across all browsers on Windows.
      * Falls back to a file:/// URI if the server failed to start.
      */
@@ -383,7 +388,11 @@ public class BahaiResearch extends Application {
 
         String baseUrl;
         if (localServerPort > 0) {
-            baseUrl = "http://localhost:" + localServerPort + "/" + relativeSourceUrl;
+            // Mirror the address the server actually bound to, rather than "localhost", so the
+            // URL cannot resolve to a different loopback family than the listener.
+            String host = localFileServer.getAddress().getAddress().getHostAddress();
+            if (host.indexOf(':') >= 0) host = "[" + host + "]";
+            baseUrl = "http://" + host + ":" + localServerPort + "/" + relativeSourceUrl;
         } else if (appConfig != null) {
             baseUrl = Path.of(appConfig.corpusBasePath())
                 .resolve(relativeSourceUrl).toAbsolutePath().toUri().toString();
