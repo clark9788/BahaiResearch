@@ -3,15 +3,24 @@ setlocal
 
 REM Compile the Windows installer from a payload built on Linux.
 REM
-REM The payload (app\, runtime\, VERSION) is downloaded from the GitHub release
-REM asset BahaiResearch-win-payload-<version>.zip, produced on Linux by
+REM The payload (app\, runtime\, VERSION) is built on Linux by
 REM tools/package-windows-payload.sh. Nothing is compiled here.
 REM
-REM Usage: tools\release-windows.bat <version>      e.g. tools\release-windows.bat 1.6.0
+REM The payload is located in this order:
+REM   1) second argument, a path to the zip
+REM   2) PAYLOAD_ZIP environment variable
+REM   3) dist\BahaiResearch-win-payload-<version>.zip
+REM   4) download from the matching GitHub release asset
+REM
+REM Usage: tools\release-windows.bat <version> [payload-zip]
+REM   tools\release-windows.bat 1.5.0
+REM   tools\release-windows.bat 1.5.0 X:\BahaiResearch-win-payload-1.5.0.zip
 
 set "VERSION=%~1"
 if "%VERSION%"=="" (
-  echo Usage: tools\release-windows.bat ^<version^>    e.g. tools\release-windows.bat 1.6.0
+  echo Usage: tools\release-windows.bat ^<version^> [payload-zip]
+  echo   e.g. tools\release-windows.bat 1.5.0
+  echo        tools\release-windows.bat 1.5.0 X:\BahaiResearch-win-payload-1.5.0.zip
   exit /b 1
 )
 
@@ -25,19 +34,34 @@ set "ZIP=%ROOT%\dist\BahaiResearch-win-payload-%VERSION%.zip"
 set "STAGE=%ROOT%\dist\installer"
 set "URL=https://github.com/%REPO%/releases/download/v%VERSION%/BahaiResearch-win-payload-%VERSION%.zip"
 
+REM An explicit path wins over the dist copy and over the release asset
+if not "%~2"=="" set "PAYLOAD_SRC=%~2"
+if not defined PAYLOAD_SRC if defined PAYLOAD_ZIP set "PAYLOAD_SRC=%PAYLOAD_ZIP%"
+if defined PAYLOAD_SRC (
+  if not exist "%PAYLOAD_SRC%" (
+    echo ERROR: payload not found: %PAYLOAD_SRC%
+    exit /b 1
+  )
+  set "ZIP=%PAYLOAD_SRC%"
+)
+
 if not exist "%ZIP%" (
   echo [1/4] Downloading payload %VERSION% ...
   powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     "Invoke-WebRequest -UseBasicParsing -Uri '%URL%' -OutFile '%ZIP%'"
   if errorlevel 1 (
-    echo ERROR: download failed: %URL%
-    echo Build and upload the payload first with: tools/package-windows-payload.sh
+    echo ERROR: no payload found and the release asset could not be downloaded.
+    echo        Either copy the zip onto this machine and pass its path:
+    echo          tools\release-windows.bat %VERSION% X:\BahaiResearch-win-payload-%VERSION%.zip
+    echo        or place it here and re-run:
+    echo          %ROOT%\dist\BahaiResearch-win-payload-%VERSION%.zip
+    echo        Build it on Linux with tools/package-windows-payload.sh.
     exit /b 1
   )
 ) else (
-  echo [1/4] Payload already present: %ZIP%
+  echo [1/4] Using payload: %ZIP%
   for %%F in ("%ZIP%") do echo        %%~zF bytes, modified %%~tF
-  echo        ^(delete it to download fresh from the release asset^)
+  if not defined PAYLOAD_SRC echo        ^(delete it to download fresh from the release asset^)
 )
 
 echo [2/4] Extracting to %STAGE% ...
