@@ -228,6 +228,34 @@ Two design traps found and avoided:
   matches the previous jpackage app-image, but the release asset is now separate from the
   installer, so both must be uploaded per release.
 
+## Smart App Control blocks unsigned installers
+
+First install attempt on Windows failed with:
+
+```
+Error: Unable to execute file in the temporary directory. Setup aborted.
+Error 4551: An Application Control policy has blocked this file
+```
+
+Diagnosis: `VerifiedAndReputablePolicyState = 1` under
+`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy`, i.e. **Smart App Control is on**, and
+no Defender ASR rules are configured. SAC blocks executables it cannot verify and offers no
+per-app allow and no exclusion list.
+
+The blocked file is Inno's own engine: `SetupLdr` unpacks the real installer to
+`%TEMP%\is-XXXXX.tmp` and executes it there. The app payload never runs from temp.
+
+This is not a regression. The runtime launchers are unsigned because `jlink` rewrites them —
+its `javaw.exe` differs from the signed JDK original from byte 60 onward (the PE header) and
+is 10,360 bytes shorter, exactly the certificate size, so the signature is dropped rather
+than merely trimmed. jpackage output was unsigned in the same way, so any earlier Inno
+installer is affected too.
+
+Turning SAC off is a one-way switch: re-enabling requires reinstalling Windows. On the
+development VM a snapshot makes this safe to trial. For distribution to others the options
+are a code-signing certificate (new certificates start with little reputation), an MSIX
+published through the Store (Store-signed, so trusted), or telling recipients to disable SAC.
+
 ## 6. Related gotchas (outside this file's scope)
 
 * `BahaiResearchA`: `v1.9.0` tag points at `5746a79`, whose tree has **no**
