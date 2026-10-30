@@ -213,7 +213,8 @@ Two design traps found and avoided:
 - [x] Installer runs and completes on the development host, which has SAC on (2026-10-30).
       The Setup.exe reached the wizard and finished installing, from a payload copied locally
       with no Mark-of-the-Web. The earlier `Error 4551` did not recur.
-- [ ] Installed app: shortcut launches, first search ingests the corpus
+- [x] Installed app: launches from the shortcut, first search builds `corpus.db` from the
+      packaged curated sources and returns results (2026-10-30, searched "glory": 12 passages)
 - [ ] Upgrade over an existing install: old `BahaiResearch.exe`/cfg removed, stale `corpus.db` deleted
 - [x] Icon: `assets/BahaiResearch.ico` (9 sizes) used for shortcuts, uninstaller and Setup.exe
 
