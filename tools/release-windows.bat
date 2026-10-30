@@ -103,6 +103,20 @@ if not defined ISCC (
 echo        Using %ISCC%
 
 echo [4/4] Compiling installer %VERSION% ...
+REM Inno rewrites the output in place, so a running copy, an Explorer preview pane or a
+REM virus scan holding the file open aborts the compile with error 32. Detect that first.
+set "OUTFILE=%ROOT%\dist\installer-output\BahaiResearch-Setup.exe"
+if exist "%OUTFILE%" (
+  del /f /q "%OUTFILE%" >nul 2>&1
+  if exist "%OUTFILE%" (
+    echo ERROR: cannot replace %OUTFILE%
+    echo        Another process has it open. Close these, then re-run:
+    echo          - any running copy of the installer
+    echo          - Explorer windows with the file selected or previewed
+    echo          - a virus scanner, or wait for it to finish
+    exit /b 1
+  )
+)
 "%ISCC%" /DMyAppVersion=%VERSION% "%ROOT%\BahaiResearch.iss"
 if errorlevel 1 (
   echo ERROR: Inno Setup compile failed.
