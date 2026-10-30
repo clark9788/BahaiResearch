@@ -210,7 +210,10 @@ Two design traps found and avoided:
 - [x] Payload layout: bootstrap + curated ingest yields 96 documents / 33,720 passages
 - [x] E3: first Inno compile succeeded on Windows (20.140 s) via `tools\release-windows.bat 1.5.0`,
       producing `dist\installer-output\BahaiResearch-Setup.exe`
-- [ ] Installer on Windows: app launches via the shortcut, first search ingests the corpus
+- [x] Installer runs and completes on the development host, which has SAC on (2026-10-30).
+      The Setup.exe reached the wizard and finished installing, from a payload copied locally
+      with no Mark-of-the-Web. The earlier `Error 4551` did not recur.
+- [ ] Installed app: shortcut launches, first search ingests the corpus
 - [ ] Upgrade over an existing install: old `BahaiResearch.exe`/cfg removed, stale `corpus.db` deleted
 - [x] Icon: `assets/BahaiResearch.ico` (9 sizes) used for shortcuts, uninstaller and Setup.exe
 
@@ -257,7 +260,10 @@ delivered avoids it.
 
 Evidence from a second Windows machine: v1.3.2's `Setup.exe` was downloaded from GitHub (so it
 carried Mark-of-the-Web) and installed there with only the usual SmartScreen prompt. That
-machine has SAC off. Two conclusions:
+machine has SAC off. A 1.5.0 installer copied locally (no Mark-of-the-Web) then installed
+normally on the SAC-enabled host, and the earlier `Error 4551` did not recur — so the warnings
+are driven by the mark left on downloaded files, and the one observed block was not
+reproducible. Two conclusions:
 
 * Mark-of-the-Web affects SmartScreen only, and SmartScreen is bypassable via "More info" then
   "Run anyway".
