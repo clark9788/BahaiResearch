@@ -88,4 +88,26 @@ Click Run anyway or Delete(DownArrow) -Keep Anyway
 This happens because the installer is newly published and has not yet built up Windows reputation.
 No system files are modified outside the = install directory.
 
+### Smart App Control (Windows 11) can block the installer outright
+Windows 11 also ships a stricter feature called Smart App Control. Where SmartScreen offers
+"Run anyway", Smart App Control offers nothing, and the install ends with:
+
+```
+Unable to execute file in the temporary directory. Setup aborted.
+Error 4551: An Application Control policy has blocked this file
+```
+
+Smart App Control blocks any executable it cannot verify and has no per-app allow list, so the
+only workarounds are to turn it off or to use a code-signed installer.
+
+To turn it off: Settings > Privacy & security > Windows Security > App & browser control >
+Smart App Control > Off.
+
+Caveat worth knowing before you do: turning Smart App Control off is a one-way switch. Windows
+will not let you turn it back on without reinstalling or resetting Windows.
+
+If you would rather not change that setting, ask for a build signed with a code-signing
+certificate instead.
+
+
 On first use, Windows Firewall may ask for permission for the Java HTML server to run. This server provides access to the HTML source files #anchor numbers to open file to exact location of quote, but does not need access through the firewall, so deny the firewall rule setup.
