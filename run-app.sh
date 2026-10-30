@@ -32,9 +32,14 @@ fi
 # Dynamically locate the fat JAR under build/libs or target
 JAR_PATH=$(find "$SCRIPT_DIR/build/libs" "$SCRIPT_DIR/target" -name "BahaiResearch-*-all.jar" 2>/dev/null | head -n 1)
 
+# Fall back to the jar staged in the Windows payload, which has no version in its name
+if [ -z "$JAR_PATH" ] && [ -f "$SCRIPT_DIR/dist/installer/BahaiResearch/app/BahaiResearch-all.jar" ]; then
+  JAR_PATH="$SCRIPT_DIR/dist/installer/BahaiResearch/app/BahaiResearch-all.jar"
+fi
+
 if [ -z "$JAR_PATH" ]; then
-  # Fallback to the default version if not found
-  JAR_PATH="$SCRIPT_DIR/build/libs/BahaiResearch-1.5.0-all.jar"
+  echo "ERROR: No application jar found. Run ./gradlew shadowJar, or build the payload."
+  exit 1
 fi
 
 echo "Using KEY_PATH=$KEY_PATH"
