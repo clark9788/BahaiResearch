@@ -15,8 +15,12 @@ if "%VERSION%"=="" (
   exit /b 1
 )
 
-set "REPO=clark9788/bahairesearch"
-set "ROOT=%~dp0.."
+set "REPO=clark9788/BahaiResearch"
+REM Resolve to a canonical absolute path: Inno resolves relative Source/SetupIconFile paths
+REM against the script's directory, so no ".." may remain in the path handed to ISCC.
+pushd "%~dp0.." >nul
+set "ROOT=%CD%"
+popd
 set "ZIP=%ROOT%\dist\BahaiResearch-win-payload-%VERSION%.zip"
 set "STAGE=%ROOT%\dist\installer"
 set "URL=https://github.com/%REPO%/releases/download/v%VERSION%/BahaiResearch-win-payload-%VERSION%.zip"
