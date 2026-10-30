@@ -98,15 +98,24 @@ cat <<EOF
 
 Done.
   Payload folder: $PAYLOAD
-  Release asset:  $ZIP ($(du -h "$ZIP" | cut -f1))
+  Payload zip   : $ZIP
+                  $(stat -c%s "$ZIP") bytes, modified $(date -r "$ZIP" '+%Y-%m-%d %H:%M')
 
-Next:
-  gh release upload v$VERSION "$ZIP" --clobber
-  # or with a token:
-  #   curl -H "Authorization: token \$GH_TOKEN" -H "Content-Type: application/zip" \\
-  #        --data-binary @"$ZIP" \\
-  #        "https://uploads.github.com/repos/clark9788/bahairesearch/releases/<RELEASE_ID>/assets?name=BahaiResearch-win-payload-$VERSION.zip"
+Next: copy the zip to the Windows machine, then run release-windows.bat there.
+It reads \$ROOT\\dist\\BahaiResearch-win-payload-$VERSION.zip and skips any download, so
+the file just has to land in the project's dist\\ folder:
 
-On Windows:
+  cp "$ZIP" /media/   # VirtualBox shared folder; then move it on Windows
+  # -> D:\\AI-Python\\BahaiResearch\\dist\\$(basename "$ZIP")
+
+Then on Windows:
+  cd D:\\AI-Python\\BahaiResearch
+  git pull
   tools\\release-windows.bat $VERSION
+
+The script echoes the zip's byte size and modification time, so it is easy to confirm the
+copy matches the numbers printed above. Delete the zip to force a fresh download instead.
+
+Alternatively, publish the payload as a release asset and let Windows fetch it:
+  gh release upload v$VERSION "$ZIP" --clobber
 EOF
